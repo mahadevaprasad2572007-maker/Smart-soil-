@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Soil Moisture Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;600;700&display=swap" rel="family">
+
+    <style>
+        :root {
+            --bg-color: #03081e;
+            --sidebar-color: rgba(6, 14, 46, 0.8);
+            --card-bg: rgba(10, 25, 74, 0.4);
+            --card-border: rgba(0, 242, 254, 0.15);
+            --neon-blue: #00f2fe;
+            --neon-green: #4facfe;
+            --text-main: #ffffff;
+            --text-muted: #8fa0dd;
+            --alert-red: #ff3366;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 50%, #0a194a 0%, #03081e 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        /* --- SIDEBAR STYLE --- */
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            background: var(--sidebar-color);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--card-border);
+            position: fixed;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 1.5rem;
+            z-index: 100;
+            transition: all 0.4s ease;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--neon-blue);
+            font-family: 'Orbitron', sans-serif;
+            margin-bottom: 3rem;
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+        }
+
+        .menu-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .menu-item a {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .menu-item a:hover, .menu-item.active a {
+            color: var(--text-main);
+            background: rgba(0, 242, 254, 0.1);
+            border-color: var(--card-border);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+            transform: translateX(5px);
+        }
+
+        .menu-item a i {
+            font-size: 1.2rem;
+            color: var(--neon-blue);
+        }
+
+        /* --- MAIN CONTENT LAYOUT --- */
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 2rem;
+            max-width: 1400px;
+            width: calc(100% - 260px);
+            transition: all 0.4s ease;
+        }
+
+        /* --- HEADER SECTION --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .header-title h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+            background: linear-gradient(45deg, var(--text-main), var(--neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 254, 157, 0.1);
+            border: 1px solid rgba(0, 254, 157, 0.3);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #00fe9d;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #00fe9d;
+            animation: pulse 1.5s infinite;
+        }
+
+        .live-clock {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            color: var(--neon-blue);
+            background: rgba(10, 25, 74, 0.6);
+            padding: 0.4rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+        }
+
+        /* --- METRICS CARDS GRID --- */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(0, 242, 254, 0.05), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 242, 254, 0.4);
+            box-shadow: 0 10px 25px rgba(0, 242, 254, 0.15);
+        }
+
+        .card-icon {
+            font-size: 1.8rem;
+            color: var(--neon-blue);
+            margin-bottom: 0.5rem;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 0.8rem;
+            text-align: center;
+        }
+
+        /* Gauge Metric Element */
+        .gauge-box {
+            position: relative;
+            width: 110px;
+            height: 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gauge-svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .gauge-track {
+            fill: none;
+            stroke: rgba(255,255,255,0.05);
+            stroke-width: 8;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke: url(#gaugeGradient);
+            stroke-width: 8;
+            stroke-dasharray: 283;
+            stroke-dashoffset: 70; /* Dynamic variable via JS */
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s ease-out;
+        }
+
+        .gauge-value {
+            position: absolute;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+
+        .text-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            color: #fff;
+            margin-top: 0.5rem;
+            text-shadow: 0 0 8px rgba(255,255,255,0.2);
+        }
+
+        .text-value.good { color: #00fe9d; text-shadow: 0 0 8px rgba(0,254,157,0.4); }
+        .text-value.warning { color: #ffaa00; text-shadow: 0 0 8px rgba(255,170,0,0.4); }
+
+        /* --- VISUALIZATION AREA --- */
+        .analytics-container {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .analytics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .analytics-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .timestamp-log {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+
+        /* --- MOBILE NAVIGATION --- */
+        .mobile-toggle {
+            display: none;
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-main);
+            cursor: pointer;
+            z-index: 110;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 254, 157, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(0, 254, 157, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 254, 157, 0); }
+        }
+
+        /* --- RESPONSIVE BREAKPOINTS --- */
+        @media (max-width: 992px) {
+            .sidebar {
+                left: -260px;
+            }
+            .sidebar.active {
+                left: 0;
+            }
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            .mobile-toggle {
+                display: block;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .status-container {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle Menu">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            <i class="fa-solid fa-droplet"></i>
+            <span>AGRO.OS</span>
+        </div>
+        <ul class="menu-list">
+            <li class="menu-item active"><a href="#"><i class="fa-solid fa-gauge-high"></i> Home</a></li>
+            <li class="menu-item"><a href="#"><i class="fa-solid fa-microchip"></i> Devices</a></li>
+            <li class="menu-item"><a href="#"><i class="fa-solid fa-file-invoice-project"></i> Reports</a></li>
+            <li class="menu-item"><a href="#"><i class="fa-solid fa-chart-line"></i> Analytics</a></li>
+            <li class="menu-item"><a href="#"><i class="fa-solid fa-sliders"></i> Settings</a></li>
+            <li class="menu-item"><a href="#"><i class="fa-solid fa-circle-info"></i> About</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <header>
+            <div class="header-title">
+                <h1>Smart Soil Moisture Monitoring System</h1>
+            </div>
+            <div class="status-container">
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span>SYSTEM ONLINE</span>
+                </div>
+                <div class="live-clock" id="liveClock">00:00:00 PM</div>
+            </div>
+        </header>
+
+        <section class="metrics-grid">
+            <div class="card">
+                <div class="card-icon"><i class="fa-solid fa-faucet-drip"></i></div>
+                <div class="card-title">Soil Moisture</div>
+                <div class="gauge-box">
+                    <svg class="gauge-svg" viewBox="0 0 100 100">
+                        <defs>
+                            <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#00f2fe" />
+                                <stop offset="100%" stop-color="#4facfe" />
+                            </linearGradient>
+                        </defs>
+                        <circle class="gauge-track" cx="50" cy="50" r="45"></y>
+                        <circle class="gauge-fill" id="moistureGaugeFill" cx="50" cy="50" r="45"></circle>
+                    </svg>
+                    <div class="gauge-value" id="moistureValue">0%</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-icon"><i class="fa-solid fa-seedling"></i></div>
+                <div class="card-title">Soil Condition</div>
+                <div class="text-value good" id="soilConditionText">OPTIMAL</div>
+            </div>
+
+            <div class="card">
+                <div class="card-icon"><i class="fa-solid fa-glass-water"></i></div>
+                <div class="card-title">Water Level Status</div>
+                <div class="text-value" id="waterLevelText">NORMAL</div>
+            </div>
+
+            <div class="card">
+                <div class="card-icon"><i class="fa-solid fa-wifi"></i></div>
+                <div class="card-title">ESP8266 Node</div>
+                <div class="text-value good" id="espStatusText">CONNECTED</div>
+            </div>
+
+            <div class="card">
+                <div class="card-icon"><i class="fa-solid fa-microchip"></i></div>
+                <div class="card-title">Sensor Hardware</div>
+                <div class="text-value good" id="sensorStatusText">ACTIVE</div>
+            </div>
+        </section>
+
+        <section class="analytics-container">
+            <div class="analytics-header">
+                <div class="analytics-title">
+                    <i class="fa-solid fa-chart-area" style="color: var(--neon-blue);"></i>
+                    <span>Real-Time Moisture Analytics (Temporal Line)</span>
+                </div>
+                <div class="timestamp-log" id="lastUpdated">Last updated: Syncing...</div>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="realtimeChart"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // --- LIVE CLOCK HANDLER ---
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('liveClock').innerText = now.toLocaleTimeString();
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- MOBILE NAV TOGGLE ---
+        const mobileToggle = document.getElementById('mobileToggle');
+        const sidebar = document.getElementById('sidebar');
+        mobileToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            const icon = mobileToggle.querySelector('i');
+            icon.classList.toggle('fa-bars');
+            icon.classList.toggle('fa-xmark');
+        });
+
+        // --- CHART.JS CONFIGURATION ---
+        const ctx = document.getElementById('realtimeChart').getContext('2d');
+        
+        // Gradient fill for the area chart line
+        const chartGradient = ctx.createLinearGradient(0, 0, 0, 300);
+        chartGradient.addColorStop(0, 'rgba(0, 242, 254, 0.4)');
+        chartGradient.addColorStop(1, 'rgba(0, 242, 254, 0.0)');
+
+        const realtimeChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // Populated dynamically dynamically
+                datasets: [{
+                    label: 'Moisture Level (%)',
+                    data: [],
+                    borderColor: '#00f2fe',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#00f2fe',
+                    pointHoverRadius: 7,
+                    backgroundColor: chartGradient,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: '#8fa0dd' }
+                    },
+                    y: {
+                        min: 0,
+                        max: 100,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: '#8fa0dd' }
+                    }
+                }
+            }
+        });
+
+        // --- DATA INTERACTION ENGINE (ThingSpeak / Mock Fallback) ---
+        // REPLACE WITH YOUR REQUISITE CHANNELS IF NEEDED
+        // URL Format: https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results=1
+        const THINGSPEAK_API_URL = 'https://api.thingspeak.com/channels/9/feeds.json?results=10'; 
+
+        function updateGauge(percent) {
+            const circle = document.getElementById('moistureGaugeFill');
+            const radius = circle.r.baseVal.value;
+            const circumference = 2 * Math.PI * radius;
+            
+            // Calculate progress offset
+            const offset = circumference - (percent / 100) * circumference;
+            circle.style.strokeDashoffset = offset;
+            document.getElementById('moistureValue').innerText = `${percent}%`;
+        }
+
+        async function fetchTelemetry() {
+            try {
+                let moistureValue = 0;
+                let timestamp = new Date().toLocaleTimeString();
+
+                const response = await fetch(THINGSPEAK_API_URL);
+                if (response.ok) {
+                    const data = await response.json();
+                    const latestFeed = data.feeds[data.feeds.length - 1];
+                    
+                    // Assuming field1 holds moisture data; fall back to pseudo-random simulation if channel empty
+                    moistureValue = latestFeed.field1 ? Math.round(parseFloat(latestFeed.field1)) : Math.floor(Math.random() * (75 - 40) + 40);
+                    
+                    // Parse native feeds directly to feed visualization array sequential load
+                    const dynamicLabels = [];
+                    const dynamicData = [];
+                    data.feeds.forEach(feed => {
+                        let timeVal = new Date(feed.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                        dynamicLabels.push(timeVal);
+                        dynamicData.push(feed.field1 ? Math.round(parseFloat(feed.field1)) : Math.floor(Math.random() * (75 - 40) + 40));
+                    });
+
+                    realtimeChart.data.labels = dynamicLabels;
+                    realtimeChart.data.datasets[0].data = dynamicData;
+                } else {
+                    throw new Error("API Connection Interrupted");
+                }
+
+                // UI processing execution based on data changes
+                updateGauge(moistureValue);
+                
+                // Adjust contextual descriptors dynamically
+                const conditionText = document.getElementById('soilConditionText');
+                if(moistureValue < 30) {
+                    conditionText.innerText = "DRY";
+                    conditionText.className = "text-value warning";
+                } else if(moistureValue > 75) {
+                    conditionText.innerText = "WET";
+                    conditionText.className = "text-value warning";
+                } else {
+                    conditionText.innerText = "OPTIMAL";
+                    conditionText.className = "text-value good";
+                }
+
+                document.getElementById('lastUpdated').innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
+                realtimeChart.update();
+
+            } catch (error) {
+                console.warn("Using simulated telemetry environment (ThingSpeak Sandbox Mock Mode)");
+                generateMockData();
+            }
+        }
+
+        // Simulates continuous incoming dynamic data streams smoothly if hardware configuration isn't currently broadcast active
+        function generateMockData() {
+            const baseTime = new Date();
+            if(realtimeChart.data.labels.length === 0) {
+                for(let i = 9; i >= 0; i--) {
+                    let pastTime = new Date(baseTime.getTime() - i * 4000);
+                    realtimeChart.data.labels.push(pastTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}));
+                    realtimeChart.data.datasets[0].data.push(Math.floor(Math.random() * (68 - 42) + 42));
+                }
+            } else {
+                if(realtimeChart.data.labels.length > 12) {
+                    realtimeChart.data.labels.shift();
+                    realtimeChart.data.datasets[0].data.shift();
+                }
+                realtimeChart.data.labels.push(baseTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}));
+                const nextVal = Math.floor(Math.random() * (68 - 42) + 42);
+                realtimeChart.data.datasets[0].data.push(nextVal);
+            }
+            
+            const liveVal = realtimeChart.data.datasets[0].data[realtimeChart.data.datasets[0].data.length - 1];
+            updateGauge(liveVal);
+            document.getElementById('lastUpdated').innerText = `Last updated: ${baseTime.toLocaleTimeString()}`;
+            realtimeChart.update();
+        }
+
+        // Loop system fetching processes automatically every 4 seconds
+        setInterval(fetchTelemetry, 4000);
+        fetchTelemetry();
+    </script>
+</body>
+</html>
