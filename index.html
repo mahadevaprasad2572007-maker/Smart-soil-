@@ -1,625 +1,498 @@
-<!DOCTYPE html>
+      <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Soil Moisture Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;600;700&display=swap" rel="family">
-
-    <style>
-        :root {
-            --bg-color: #03081e;
-            --sidebar-color: rgba(6, 14, 46, 0.8);
-            --card-bg: rgba(10, 25, 74, 0.4);
-            --card-border: rgba(0, 242, 254, 0.15);
-            --neon-blue: #00f2fe;
-            --neon-green: #4facfe;
-            --text-main: #ffffff;
-            --text-muted: #8fa0dd;
-            --alert-red: #ff3366;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Rajdhani', sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            background-image: radial-gradient(circle at 50% 50%, #0a194a 0%, #03081e 100%);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            overflow-x: hidden;
-        }
-
-        /* --- SIDEBAR STYLE --- */
-        .sidebar {
-            width: 260px;
-            height: 100vh;
-            background: var(--sidebar-color);
-            backdrop-filter: blur(12px);
-            border-right: 1px solid var(--card-border);
-            position: fixed;
-            left: 0;
-            top: 0;
-            display: flex;
-            flex-direction: column;
-            padding: 2rem 1.5rem;
-            z-index: 100;
-            transition: all 0.4s ease;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: var(--neon-blue);
-            font-family: 'Orbitron', sans-serif;
-            margin-bottom: 3rem;
-            text-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
-        }
-
-        .menu-list {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 0.8rem;
-        }
-
-        .menu-item a {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            color: var(--text-muted);
-            text-decoration: none;
-            padding: 0.8rem 1rem;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            border: 1px solid transparent;
-        }
-
-        .menu-item a:hover, .menu-item.active a {
-            color: var(--text-main);
-            background: rgba(0, 242, 254, 0.1);
-            border-color: var(--card-border);
-            box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
-            transform: translateX(5px);
-        }
-
-        .menu-item a i {
-            font-size: 1.2rem;
-            color: var(--neon-blue);
-        }
-
-        /* --- MAIN CONTENT LAYOUT --- */
-        .main-content {
-            margin-left: 260px;
-            flex: 1;
-            padding: 2rem;
-            max-width: 1400px;
-            width: calc(100% - 260px);
-            transition: all 0.4s ease;
-        }
-
-        /* --- HEADER SECTION --- */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--card-border);
-        }
-
-        .header-title h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.8rem;
-            letter-spacing: 1px;
-            background: linear-gradient(45deg, var(--text-main), var(--neon-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .status-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(0, 254, 157, 0.1);
-            border: 1px solid rgba(0, 254, 157, 0.3);
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #00fe9d;
-            border-radius: 50%;
-            box-shadow: 0 0 10px #00fe9d;
-            animation: pulse 1.5s infinite;
-        }
-
-        .live-clock {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.1rem;
-            color: var(--neon-blue);
-            background: rgba(10, 25, 74, 0.6);
-            padding: 0.4rem 1rem;
-            border-radius: 8px;
-            border: 1px solid var(--card-border);
-        }
-
-        /* --- METRICS CARDS GRID --- */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .card {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, transparent, rgba(0, 242, 254, 0.05), transparent);
-            transform: translateX(-100%);
-            transition: transform 0.6s;
-        }
-
-        .card:hover::before {
-            transform: translateX(100%);
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(0, 242, 254, 0.4);
-            box-shadow: 0 10px 25px rgba(0, 242, 254, 0.15);
-        }
-
-        .card-icon {
-            font-size: 1.8rem;
-            color: var(--neon-blue);
-            margin-bottom: 0.5rem;
-        }
-
-        .card-title {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            margin-bottom: 0.8rem;
-            text-align: center;
-        }
-
-        /* Gauge Metric Element */
-        .gauge-box {
-            position: relative;
-            width: 110px;
-            height: 110px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .gauge-svg {
-            transform: rotate(-90deg);
-            width: 100%;
-            height: 100%;
-        }
-
-        .gauge-track {
-            fill: none;
-            stroke: rgba(255,255,255,0.05);
-            stroke-width: 8;
-        }
-
-        .gauge-fill {
-            fill: none;
-            stroke: url(#gaugeGradient);
-            stroke-width: 8;
-            stroke-dasharray: 283;
-            stroke-dashoffset: 70; /* Dynamic variable via JS */
-            stroke-linecap: round;
-            transition: stroke-dashoffset 1s ease-out;
-        }
-
-        .gauge-value {
-            position: absolute;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.4rem;
-            font-weight: bold;
-        }
-
-        .text-value {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.3rem;
-            color: #fff;
-            margin-top: 0.5rem;
-            text-shadow: 0 0 8px rgba(255,255,255,0.2);
-        }
-
-        .text-value.good { color: #00fe9d; text-shadow: 0 0 8px rgba(0,254,157,0.4); }
-        .text-value.warning { color: #ffaa00; text-shadow: 0 0 8px rgba(255,170,0,0.4); }
-
-        /* --- VISUALIZATION AREA --- */
-        .analytics-container {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .analytics-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .analytics-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .timestamp-log {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        .chart-wrapper {
-            position: relative;
-            height: 350px;
-            width: 100%;
-        }
-
-        /* --- MOBILE NAVIGATION --- */
-        .mobile-toggle {
-            display: none;
-            font-size: 1.5rem;
-            background: none;
-            border: none;
-            color: var(--text-main);
-            cursor: pointer;
-            z-index: 110;
-        }
-
-        /* --- KEYFRAMES --- */
-        @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 254, 157, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(0, 254, 157, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 254, 157, 0); }
-        }
-
-        /* --- RESPONSIVE BREAKPOINTS --- */
-        @media (max-width: 992px) {
-            .sidebar {
-                left: -260px;
-            }
-            .sidebar.active {
-                left: 0;
-            }
-            .main-content {
-                margin-left: 0;
-                width: 100%;
-            }
-            .mobile-toggle {
-                display: block;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
-            header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .status-container {
-                width: 100%;
-                justify-content: space-between;
-            }
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart Soil Moisture Monitoring System</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg-deep:#020c1b;--bg-dark:#050f20;--bg-card:rgba(6,20,45,0.75);
+  --sidebar-bg:#040d1e;--accent-cyan:#00e5ff;--accent-green:#00ff88;
+  --accent-amber:#ffb300;--accent-red:#ff3d5a;--accent-blue:#1a8cff;
+  --text-primary:#e0f0ff;--text-dim:#5a8aaa;--border:rgba(0,229,255,0.15);
+  --glow-cyan:0 0 18px rgba(0,229,255,0.45);--glow-green:0 0 18px rgba(0,255,136,0.45);
+  --glow-amber:0 0 18px rgba(255,179,0,0.45);--glow-red:0 0 18px rgba(255,61,90,0.45);
+  --sidebar-w:240px;--font-display:'Orbitron',monospace;--font-body:'Exo 2',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg-deep);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(1px 1px at 10% 20%,rgba(0,229,255,0.35) 0%,transparent 100%),radial-gradient(1px 1px at 80% 10%,rgba(26,140,255,0.3) 0%,transparent 100%),radial-gradient(1px 1px at 50% 80%,rgba(0,255,136,0.25) 0%,transparent 100%),radial-gradient(1px 1px at 30% 60%,rgba(0,229,255,0.2) 0%,transparent 100%),radial-gradient(1px 1px at 90% 50%,rgba(26,140,255,0.25) 0%,transparent 100%);background-size:300px 300px,250px 250px,350px 350px,400px 400px,200px 200px;animation:starDrift 40s linear infinite;pointer-events:none;z-index:0}
+@keyframes starDrift{to{background-position:300px 300px,-250px 250px,350px -350px,-400px 400px,200px -200px}}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px);background-size:50px 50px;pointer-events:none;z-index:0}
+.sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:var(--sidebar-bg);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:transform .35s cubic-bezier(.4,0,.2,1);backdrop-filter:blur(12px)}
+.sidebar::before{content:'';position:absolute;top:0;right:0;width:1px;height:100%;background:linear-gradient(180deg,transparent,var(--accent-cyan),transparent);opacity:.5}
+.sidebar-logo{padding:28px 20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.logo-icon{width:42px;height:42px;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-blue));border-radius:12px;display:grid;place-items:center;font-size:20px;box-shadow:var(--glow-cyan);flex-shrink:0;animation:logoPulse 3s ease-in-out infinite}
+@keyframes logoPulse{0%,100%{box-shadow:var(--glow-cyan)}50%{box-shadow:0 0 32px rgba(0,229,255,.7)}}
+.logo-text{font-family:var(--font-display);font-size:.65rem;line-height:1.4;color:var(--accent-cyan);letter-spacing:.05em}
+.logo-text span{display:block;color:var(--text-dim);font-size:.55rem;font-family:var(--font-body);letter-spacing:.1em}
+.nav-section{padding:20px 12px 8px;font-size:.58rem;letter-spacing:.15em;color:var(--text-dim);text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 16px;margin:2px 8px;border-radius:10px;cursor:pointer;transition:all .25s;position:relative;color:var(--text-dim);font-size:.85rem;font-weight:400;letter-spacing:.03em;text-decoration:none}
+.nav-item:hover,.nav-item.active{background:rgba(0,229,255,0.08);color:var(--accent-cyan);box-shadow:inset 0 0 20px rgba(0,229,255,0.05)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:3px;background:var(--accent-cyan);border-radius:0 3px 3px 0;box-shadow:var(--glow-cyan)}
+.nav-icon{font-size:1.1rem;width:22px;text-align:center}
+.sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border);font-size:.72rem;color:var(--text-dim);text-align:center;line-height:1.6}
+.sidebar-footer strong{color:var(--accent-cyan);display:block}
+.hamburger{display:none;position:fixed;top:14px;left:14px;z-index:200;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px;cursor:pointer;flex-direction:column;gap:5px;backdrop-filter:blur(10px)}
+.hamburger span{display:block;width:22px;height:2px;background:var(--accent-cyan);border-radius:2px;transition:all .3s}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:90;backdrop-filter:blur(2px)}
+.main{margin-left:var(--sidebar-w);padding:28px 28px 48px;position:relative;z-index:1;min-height:100vh}
+.topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:32px}
+.topbar-left h1{font-family:var(--font-display);font-size:clamp(1rem,2.5vw,1.5rem);font-weight:900;background:linear-gradient(90deg,var(--accent-cyan),var(--accent-blue),var(--accent-green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:.04em;line-height:1.2}
+.topbar-left p{color:var(--text-dim);font-size:.78rem;margin-top:4px;letter-spacing:.06em}
+.topbar-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.status-badge{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--bg-card);border:1px solid rgba(0,255,136,0.3);border-radius:50px;font-size:.78rem;color:var(--accent-green);box-shadow:0 0 12px rgba(0,255,136,0.15);backdrop-filter:blur(10px)}
+.status-dot{width:8px;height:8px;background:var(--accent-green);border-radius:50%;box-shadow:var(--glow-green);animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.clock-box{font-family:var(--font-display);font-size:.9rem;color:var(--accent-cyan);background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:8px 16px;letter-spacing:.08em;backdrop-filter:blur(10px)}
+.section-title{font-family:var(--font-display);font-size:.75rem;letter-spacing:.15em;color:var(--text-dim);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:18px;margin-bottom:32px}
+.kpi-card{background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:22px 20px;position:relative;overflow:hidden;backdrop-filter:blur(14px);transition:transform .3s,box-shadow .3s,border-color .3s;cursor:default}
+.kpi-card:hover{transform:translateY(-4px);border-color:rgba(0,229,255,0.4);box-shadow:0 12px 40px rgba(0,0,0,.5),var(--glow-cyan)}
+.kpi-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,229,255,0.04) 0%,transparent 60%);pointer-events:none}
+.kpi-card.green-glow:hover{border-color:rgba(0,255,136,0.4);box-shadow:0 12px 40px rgba(0,0,0,.5),var(--glow-green)}
+.kpi-card.amber-glow:hover{border-color:rgba(255,179,0,0.4);box-shadow:0 12px 40px rgba(0,0,0,.5),var(--glow-amber)}
+.kpi-card.red-glow:hover{border-color:rgba(255,61,90,0.4);box-shadow:0 12px 40px rgba(0,0,0,.5),var(--glow-red)}
+.kpi-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.kpi-label{font-size:.72rem;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase}
+.kpi-icon{font-size:1.4rem;opacity:.8}
+.gauge-wrap{position:relative;width:90px;height:90px;margin:0 auto 14px}
+.gauge-wrap svg{width:100%;height:100%;transform:rotate(-90deg)}
+.gauge-track{fill:none;stroke:rgba(255,255,255,0.06);stroke-width:6}
+.gauge-fill{fill:none;stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1),stroke .5s}
+.gauge-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-display);font-size:1.3rem;font-weight:700;line-height:1}
+.gauge-text sub{font-size:.55rem;font-family:var(--font-body);color:var(--text-dim);margin-top:2px}
+.kpi-meta{text-align:center;font-size:.72rem;color:var(--text-dim)}
+.kpi-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:600;letter-spacing:.06em;margin-top:6px}
+.badge-green{background:rgba(0,255,136,0.12);color:var(--accent-green);border:1px solid rgba(0,255,136,0.3)}
+.badge-amber{background:rgba(255,179,0,0.12);color:var(--accent-amber);border:1px solid rgba(255,179,0,0.3)}
+.badge-red{background:rgba(255,61,90,0.12);color:var(--accent-red);border:1px solid rgba(255,61,90,0.3)}
+.badge-blue{background:rgba(26,140,255,0.12);color:var(--accent-blue);border:1px solid rgba(26,140,255,0.3)}
+.badge-cyan{background:rgba(0,229,255,0.12);color:var(--accent-cyan);border:1px solid rgba(0,229,255,0.3)}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;margin-bottom:32px}
+.info-card{background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:20px;backdrop-filter:blur(14px);transition:transform .3s,box-shadow .3s;position:relative;overflow:hidden}
+.info-card:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.info-card-icon{font-size:2rem;margin-bottom:10px}
+.info-card-label{font-size:.7rem;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.info-card-value{font-family:var(--font-display);font-size:1.2rem;font-weight:700}
+.info-card-sub{font-size:.72rem;color:var(--text-dim);margin-top:4px}
+.pulse-ring{position:absolute;top:16px;right:16px;width:12px;height:12px}
+.pulse-ring::before,.pulse-ring::after{content:'';position:absolute;inset:0;border-radius:50%}
+.pulse-ring::before{background:var(--accent-green)}
+.pulse-ring::after{background:transparent;border:2px solid var(--accent-green);animation:pulseRing 1.8s ease-out infinite}
+@keyframes pulseRing{0%{transform:scale(1);opacity:1}100%{transform:scale(2.5);opacity:0}}
+.charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:32px}
+.chart-card{background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:22px;backdrop-filter:blur(14px);position:relative;overflow:hidden}
+.chart-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent-cyan),transparent);opacity:.6}
+.chart-title{font-family:var(--font-display);font-size:.72rem;letter-spacing:.1em;color:var(--accent-cyan);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.chart-dot{width:6px;height:6px;background:var(--accent-cyan);border-radius:50%;box-shadow:var(--glow-cyan);animation:blink 2s infinite}
+.table-card{background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:22px;backdrop-filter:blur(14px);overflow:hidden;margin-bottom:32px}
+.data-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.data-table th{text-align:left;padding:10px 14px;font-family:var(--font-display);font-size:.6rem;letter-spacing:.12em;color:var(--text-dim);text-transform:uppercase;border-bottom:1px solid var(--border)}
+.data-table td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,0.04);transition:background .2s}
+.data-table tr:hover td{background:rgba(0,229,255,0.04)}
+.data-table tr:last-child td{border-bottom:none}
+.td-num{font-family:var(--font-display);font-size:.85rem}
+.last-updated{text-align:right;font-size:.72rem;color:var(--text-dim);margin-bottom:28px;letter-spacing:.06em}
+.last-updated span{color:var(--accent-cyan)}
+.footer{border-top:1px solid var(--border);padding-top:20px;text-align:center;font-size:.72rem;color:var(--text-dim);line-height:1.8}
+.footer strong{color:var(--accent-cyan)}
+.footer-icons{font-size:1rem;margin-bottom:6px}
+@media(max-width:900px){.charts-grid{grid-template-columns:1fr}}
+@media(max-width:700px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay.open{display:block}
+  .hamburger{display:flex}
+  .main{margin-left:0;padding:70px 16px 40px}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .topbar-left h1{font-size:.95rem}
+}
+@media(max-width:420px){.kpi-grid{grid-template-columns:1fr}.info-grid{grid-template-columns:1fr}}
+@keyframes scanLine{0%{top:-100%}100%{top:200%}}
+.kpi-card:hover::after{content:'';position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,229,255,0.3),transparent);animation:scanLine .8s linear;pointer-events:none}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg-deep)}
+::-webkit-scrollbar-thumb{background:rgba(0,229,255,0.2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(0,229,255,0.4)}
+</style>
 </head>
 <body>
 
-    <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle Menu">
-        <i class="fa-solid fa-bars"></i>
-    </button>
+<button class="hamburger" id="hamburger" aria-label="Menu">
+  <span></span><span></span><span></span>
+</button>
+<div class="sidebar-overlay" id="overlay"></div>
 
-    <nav class="sidebar" id="sidebar">
-        <div class="brand">
-            <i class="fa-solid fa-droplet"></i>
-            <span>AGRO.OS</span>
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">💧</div>
+    <div class="logo-text">AGRI<br>SENSE<span>IoT Platform v2.1</span></div>
+  </div>
+  <div class="nav-section">Main Menu</div>
+  <a class="nav-item active" href="#dashboard"><span class="nav-icon">🏠</span> Dashboard</a>
+  <a class="nav-item" href="#devices"><span class="nav-icon">📡</span> Devices</a>
+  <a class="nav-item" href="#analytics"><span class="nav-icon">📊</span> Analytics</a>
+  <a class="nav-item" href="#reports"><span class="nav-icon">📋</span> Reports</a>
+  <div class="nav-section">System</div>
+  <a class="nav-item" href="#settings"><span class="nav-icon">⚙️</span> Settings</a>
+  <a class="nav-item" href="#about"><span class="nav-icon">ℹ️</span> About</a>
+  <div class="sidebar-footer">
+    <strong>ESP8266 Node #1</strong>
+    IP: 192.168.1.42<br>Firmware: 3.0.2
+  </div>
+</nav>
+
+<main class="main" id="dashboard">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>Smart Soil Moisture Monitoring System</h1>
+      <p>🌱 Real-time IoT Agricultural Intelligence · Arduino UNO + ESP8266</p>
+    </div>
+    <div class="topbar-right">
+      <div class="status-badge"><span class="status-dot"></span>System Online</div>
+      <div class="clock-box" id="clock">--:--:--</div>
+    </div>
+  </div>
+
+  <div class="section-title">📡 Live Sensor Readings</div>
+  <div class="kpi-grid">
+
+    <div class="kpi-card">
+      <div class="kpi-header"><span class="kpi-label">Soil Moisture</span><span class="kpi-icon">💧</span></div>
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 90 90">
+          <circle class="gauge-track" cx="45" cy="45" r="36"/>
+          <circle class="gauge-fill" id="g-moisture" cx="45" cy="45" r="36" stroke="var(--accent-cyan)" stroke-dasharray="226.2" stroke-dashoffset="226.2"/>
+        </svg>
+        <div class="gauge-text" style="color:var(--accent-cyan)"><span id="v-moisture">0</span><sub>%</sub></div>
+      </div>
+      <div class="kpi-meta">Analog Reading<br><span class="kpi-badge badge-cyan" id="b-moisture">MEASURING…</span></div>
+    </div>
+
+    <div class="kpi-card green-glow">
+      <div class="kpi-header"><span class="kpi-label">Temperature</span><span class="kpi-icon">🌡️</span></div>
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 90 90">
+          <circle class="gauge-track" cx="45" cy="45" r="36"/>
+          <circle class="gauge-fill" id="g-temp" cx="45" cy="45" r="36" stroke="var(--accent-green)" stroke-dasharray="226.2" stroke-dashoffset="226.2"/>
+        </svg>
+        <div class="gauge-text" style="color:var(--accent-green)"><span id="v-temp">0</span><sub>°C</sub></div>
+      </div>
+      <div class="kpi-meta">Ambient Temp<br><span class="kpi-badge badge-green" id="b-temp">NORMAL</span></div>
+    </div>
+
+    <div class="kpi-card amber-glow">
+      <div class="kpi-header"><span class="kpi-label">Humidity</span><span class="kpi-icon">🌫️</span></div>
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 90 90">
+          <circle class="gauge-track" cx="45" cy="45" r="36"/>
+          <circle class="gauge-fill" id="g-humid" cx="45" cy="45" r="36" stroke="var(--accent-amber)" stroke-dasharray="226.2" stroke-dashoffset="226.2"/>
+        </svg>
+        <div class="gauge-text" style="color:var(--accent-amber)"><span id="v-humid">0</span><sub>%</sub></div>
+      </div>
+      <div class="kpi-meta">Air Humidity<br><span class="kpi-badge badge-amber" id="b-humid">MEASURING…</span></div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-header"><span class="kpi-label">Light Level</span><span class="kpi-icon">☀️</span></div>
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 90 90">
+          <circle class="gauge-track" cx="45" cy="45" r="36"/>
+          <circle class="gauge-fill" id="g-light" cx="45" cy="45" r="36" stroke="var(--accent-blue)" stroke-dasharray="226.2" stroke-dashoffset="226.2"/>
+        </svg>
+        <div class="gauge-text" style="color:var(--accent-blue)"><span id="v-light">0</span><sub>lux</sub></div>
+      </div>
+      <div class="kpi-meta">LDR Sensor<br><span class="kpi-badge badge-blue" id="b-light">READING…</span></div>
+    </div>
+
+    <div class="kpi-card green-glow">
+      <div class="kpi-header"><span class="kpi-label">Soil Condition</span><span class="kpi-icon">🌱</span></div>
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 90 90">
+          <circle class="gauge-track" cx="45" cy="45" r="36"/>
+          <circle class="gauge-fill" id="g-soil" cx="45" cy="45" r="36" stroke="var(--accent-green)" stroke-dasharray="226.2" stroke-dashoffset="226.2"/>
+        </svg>
+        <div class="gauge-text" style="color:var(--accent-green);font-size:.75rem;text-align:center">
+          <span id="v-soil" style="font-size:1.6rem">—</span>
         </div>
-        <ul class="menu-list">
-            <li class="menu-item active"><a href="#"><i class="fa-solid fa-gauge-high"></i> Home</a></li>
-            <li class="menu-item"><a href="#"><i class="fa-solid fa-microchip"></i> Devices</a></li>
-            <li class="menu-item"><a href="#"><i class="fa-solid fa-file-invoice-project"></i> Reports</a></li>
-            <li class="menu-item"><a href="#"><i class="fa-solid fa-chart-line"></i> Analytics</a></li>
-            <li class="menu-item"><a href="#"><i class="fa-solid fa-sliders"></i> Settings</a></li>
-            <li class="menu-item"><a href="#"><i class="fa-solid fa-circle-info"></i> About</a></li>
-        </ul>
-    </nav>
+      </div>
+      <div class="kpi-meta">Moisture State<br><span class="kpi-badge badge-green" id="b-soil">ANALYZING…</span></div>
+    </div>
 
-    <main class="main-content">
-        <header>
-            <div class="header-title">
-                <h1>Smart Soil Moisture Monitoring System</h1>
-            </div>
-            <div class="status-container">
-                <div class="status-indicator">
-                    <span class="status-dot"></span>
-                    <span>SYSTEM ONLINE</span>
-                </div>
-                <div class="live-clock" id="liveClock">00:00:00 PM</div>
-            </div>
-        </header>
+  </div>
 
-        <section class="metrics-grid">
-            <div class="card">
-                <div class="card-icon"><i class="fa-solid fa-faucet-drip"></i></div>
-                <div class="card-title">Soil Moisture</div>
-                <div class="gauge-box">
-                    <svg class="gauge-svg" viewBox="0 0 100 100">
-                        <defs>
-                            <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#00f2fe" />
-                                <stop offset="100%" stop-color="#4facfe" />
-                            </linearGradient>
-                        </defs>
-                        <circle class="gauge-track" cx="50" cy="50" r="45"></y>
-                        <circle class="gauge-fill" id="moistureGaugeFill" cx="50" cy="50" r="45"></circle>
-                    </svg>
-                    <div class="gauge-value" id="moistureValue">0%</div>
-                </div>
-            </div>
+  <div class="section-title" id="devices">🔌 Device Status</div>
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="pulse-ring"></div>
+      <div class="info-card-icon">📶</div>
+      <div class="info-card-label">ESP8266 Wi-Fi</div>
+      <div class="info-card-value" id="esp-status" style="color:var(--accent-green)">CONNECTED</div>
+      <div class="info-card-sub">Signal: <span id="esp-rssi">--</span> dBm · Channel: 6</div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-icon">🤖</div>
+      <div class="info-card-label">Arduino UNO</div>
+      <div class="info-card-value" style="color:var(--accent-cyan)">RUNNING</div>
+      <div class="info-card-sub">Loop: <span id="loop-time">--</span> ms · Uptime: <span id="uptime">--</span></div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-icon">🌊</div>
+      <div class="info-card-label">Water Level</div>
+      <div class="info-card-value" id="water-val" style="color:var(--accent-blue)">--</div>
+      <div class="info-card-sub">Tank capacity: <span id="water-pct">--</span>%</div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-icon">🔄</div>
+      <div class="info-card-label">Auto-Irrigation</div>
+      <div class="info-card-value" id="irrig-val" style="color:var(--accent-amber)">STANDBY</div>
+      <div class="info-card-sub">Threshold: 30% · Pump: <span id="pump-val">OFF</span></div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-icon">⚡</div>
+      <div class="info-card-label">Power Supply</div>
+      <div class="info-card-value" style="color:var(--accent-green)">STABLE</div>
+      <div class="info-card-sub">5V USB · 3.3V Reg · <span id="voltage">3.31</span> V</div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-icon">🛰️</div>
+      <div class="info-card-label">ThingSpeak Cloud</div>
+      <div class="info-card-value" id="ts-status" style="color:var(--accent-cyan)">SYNCING</div>
+      <div class="info-card-sub">Channel: <span id="ts-channel">2956430</span> · Interval: 15s</div>
+    </div>
+  </div>
 
-            <div class="card">
-                <div class="card-icon"><i class="fa-solid fa-seedling"></i></div>
-                <div class="card-title">Soil Condition</div>
-                <div class="text-value good" id="soilConditionText">OPTIMAL</div>
-            </div>
+  <div class="last-updated">
+    Last updated: <span id="last-updated">--</span> &nbsp;·&nbsp; Next refresh in <span id="countdown">15</span>s
+  </div>
 
-            <div class="card">
-                <div class="card-icon"><i class="fa-solid fa-glass-water"></i></div>
-                <div class="card-title">Water Level Status</div>
-                <div class="text-value" id="waterLevelText">NORMAL</div>
-            </div>
+  <div class="section-title" id="analytics">📈 Live Analytics</div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title"><span class="chart-dot"></span>Soil Moisture — 15-Min Live Trend</div>
+      <div class="chart-wrap"><canvas id="lineChart" height="220"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="chart-dot"></span>Sensor Distribution</div>
+      <div class="chart-wrap"><canvas id="donutChart" height="220"></canvas></div>
+    </div>
+  </div>
 
-            <div class="card">
-                <div class="card-icon"><i class="fa-solid fa-wifi"></i></div>
-                <div class="card-title">ESP8266 Node</div>
-                <div class="text-value good" id="espStatusText">CONNECTED</div>
-            </div>
+  <div class="charts-grid" style="grid-template-columns:1fr 1fr;margin-bottom:32px">
+    <div class="chart-card">
+      <div class="chart-title"><span class="chart-dot"></span>Temperature History</div>
+      <canvas id="barChart" height="180"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="chart-dot"></span>Multi-Sensor Overview</div>
+      <canvas id="radarChart" height="180"></canvas>
+    </div>
+  </div>
 
-            <div class="card">
-                <div class="card-icon"><i class="fa-solid fa-microchip"></i></div>
-                <div class="card-title">Sensor Hardware</div>
-                <div class="text-value good" id="sensorStatusText">ACTIVE</div>
-            </div>
-        </section>
+  <div class="section-title" id="reports">📋 Recent Readings Log</div>
+  <div class="table-card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th><th>Timestamp</th><th>Moisture %</th>
+          <th>Temp °C</th><th>Humidity %</th>
+          <th>Water Level</th><th>Condition</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="log-body">
+        <tr><td colspan="8" style="text-align:center;color:var(--text-dim);padding:24px">Loading data…</td></tr>
+      </tbody>
+    </table>
+  </div>
 
-        <section class="analytics-container">
-            <div class="analytics-header">
-                <div class="analytics-title">
-                    <i class="fa-solid fa-chart-area" style="color: var(--neon-blue);"></i>
-                    <span>Real-Time Moisture Analytics (Temporal Line)</span>
-                </div>
-                <div class="timestamp-log" id="lastUpdated">Last updated: Syncing...</div>
-            </div>
-            <div class="chart-wrapper">
-                <canvas id="realtimeChart"></canvas>
-            </div>
-        </section>
-    </main>
+  <footer class="footer" id="about">
+    <div class="footer-icons">💧 🌱 📡 🤖 ☀️</div>
+    <strong>Smart Soil Moisture Monitoring System</strong>
+    Arduino UNO · ESP8266 Wi-Fi · Capacitive Soil Sensor · DHT22 · ThingSpeak Cloud<br>
+    Designed for precision agriculture &amp; smart farming · GitHub Pages deployment-ready<br>
+    <span style="color:var(--accent-blue)">© 2025 AgriSense IoT Platform</span>
+  </footer>
+</main>
 
-    <script>
-        // --- LIVE CLOCK HANDLER ---
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('liveClock').innerText = now.toLocaleTimeString();
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
+<script>
+const TS_CHANNEL_ID = '2956430';
+const TS_READ_KEY   = 'YOUR_READ_API_KEY';
+const REFRESH_MS    = 15000;
 
-        // --- MOBILE NAV TOGGLE ---
-        const mobileToggle = document.getElementById('mobileToggle');
-        const sidebar = document.getElementById('sidebar');
-        mobileToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
-            const icon = mobileToggle.querySelector('i');
-            icon.classList.toggle('fa-bars');
-            icon.classList.toggle('fa-xmark');
-        });
+function updateClock(){
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-US',{hour12:false});
+}
+setInterval(updateClock,1000); updateClock();
 
-        // --- CHART.JS CONFIGURATION ---
-        const ctx = document.getElementById('realtimeChart').getContext('2d');
-        
-        // Gradient fill for the area chart line
-        const chartGradient = ctx.createLinearGradient(0, 0, 0, 300);
-        chartGradient.addColorStop(0, 'rgba(0, 242, 254, 0.4)');
-        chartGradient.addColorStop(1, 'rgba(0, 242, 254, 0.0)');
+const sidebar=document.getElementById('sidebar');
+const overlay=document.getElementById('overlay');
+const hamburger=document.getElementById('hamburger');
+hamburger.addEventListener('click',()=>{sidebar.classList.toggle('open');overlay.classList.toggle('open')});
+overlay.addEventListener('click',()=>{sidebar.classList.remove('open');overlay.classList.remove('open')});
+document.querySelectorAll('.nav-item').forEach(a=>{
+  a.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    sidebar.classList.remove('open');overlay.classList.remove('open');
+  });
+});
 
-        const realtimeChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [], // Populated dynamically dynamically
-                datasets: [{
-                    label: 'Moisture Level (%)',
-                    data: [],
-                    borderColor: '#00f2fe',
-                    borderWidth: 3,
-                    pointBackgroundColor: '#00f2fe',
-                    pointHoverRadius: 7,
-                    backgroundColor: chartGradient,
-                    fill: true,
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#8fa0dd' }
-                    },
-                    y: {
-                        min: 0,
-                        max: 100,
-                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#8fa0dd' }
-                    }
-                }
-            }
-        });
+const CIRC=226.2;
+function setGauge(id,pct){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.style.strokeDashoffset=Math.max(0,Math.min(CIRC,CIRC-(pct/100)*CIRC));
+}
 
-        // --- DATA INTERACTION ENGINE (ThingSpeak / Mock Fallback) ---
-        // REPLACE WITH YOUR REQUISITE CHANNELS IF NEEDED
-        // URL Format: https://api.thingspeak.com/channels/{CHANNEL_ID}/feeds.json?results=1
-        const THINGSPEAK_API_URL = 'https://api.thingspeak.com/channels/9/feeds.json?results=10'; 
+let simM=62,simT=27,simH=58,simL=75;
+function simulateStep(){
+  const j=v=>v+(Math.random()-.5)*3;
+  simM=Math.max(10,Math.min(95,j(simM)));
+  simT=Math.max(18,Math.min(45,j(simT)));
+  simH=Math.max(20,Math.min(95,j(simH)));
+  simL=Math.max(5,Math.min(100,j(simL)));
+  return{moisture:simM,temp:simT,humid:simH,light:simL};
+}
 
-        function updateGauge(percent) {
-            const circle = document.getElementById('moistureGaugeFill');
-            const radius = circle.r.baseVal.value;
-            const circumference = 2 * Math.PI * radius;
-            
-            // Calculate progress offset
-            const offset = circumference - (percent / 100) * circumference;
-            circle.style.strokeDashoffset = offset;
-            document.getElementById('moistureValue').innerText = `${percent}%`;
-        }
+async function fetchThingSpeak(){
+  if(TS_READ_KEY==='YOUR_READ_API_KEY')return null;
+  try{
+    const res=await fetch(`https://api.thingspeak.com/channels/${TS_CHANNEL_ID}/feeds/last.json?api_key=${TS_READ_KEY}`);
+    if(!res.ok)return null;
+    const d=await res.json();
+    return{moisture:parseFloat(d.field1)||null,temp:parseFloat(d.field2)||null,humid:parseFloat(d.field3)||null,light:parseFloat(d.field4)||null};
+  }catch{return null;}
+}
 
-        async function fetchTelemetry() {
-            try {
-                let moistureValue = 0;
-                let timestamp = new Date().toLocaleTimeString();
+let logCount=0;
+function soilLabel(m){
+  if(m>=70)return{icon:'💧',label:'WET',badge:'badge-blue',color:'var(--accent-blue)'};
+  if(m>=45)return{icon:'🌿',label:'OPTIMAL',badge:'badge-green',color:'var(--accent-green)'};
+  if(m>=25)return{icon:'🌾',label:'DRY',badge:'badge-amber',color:'var(--accent-amber)'};
+  return{icon:'🏜️',label:'VERY DRY',badge:'badge-red',color:'var(--accent-red)'};
+}
+function waterLabel(p){
+  if(p>70)return{text:'HIGH',color:'var(--accent-cyan)'};
+  if(p>40)return{text:'MEDIUM',color:'var(--accent-green)'};
+  if(p>20)return{text:'LOW',color:'var(--accent-amber)'};
+  return{text:'CRITICAL',color:'var(--accent-red)'};
+}
 
-                const response = await fetch(THINGSPEAK_API_URL);
-                if (response.ok) {
-                    const data = await response.json();
-                    const latestFeed = data.feeds[data.feeds.length - 1];
-                    
-                    // Assuming field1 holds moisture data; fall back to pseudo-random simulation if channel empty
-                    moistureValue = latestFeed.field1 ? Math.round(parseFloat(latestFeed.field1)) : Math.floor(Math.random() * (75 - 40) + 40);
-                    
-                    // Parse native feeds directly to feed visualization array sequential load
-                    const dynamicLabels = [];
-                    const dynamicData = [];
-                    data.feeds.forEach(feed => {
-                        let timeVal = new Date(feed.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-                        dynamicLabels.push(timeVal);
-                        dynamicData.push(feed.field1 ? Math.round(parseFloat(feed.field1)) : Math.floor(Math.random() * (75 - 40) + 40));
-                    });
+function animateNum(id,target,dec=0){
+  const el=document.getElementById(id);if(!el)return;
+  const start=parseFloat(el.textContent)||0;let f=0;
+  const step=()=>{f++;el.textContent=(start+(target-start)*(f/30)).toFixed(dec);if(f<30)requestAnimationFrame(step);};
+  requestAnimationFrame(step);
+}
 
-                    realtimeChart.data.labels = dynamicLabels;
-                    realtimeChart.data.datasets[0].data = dynamicData;
-                } else {
-                    throw new Error("API Connection Interrupted");
-                }
+function updateUI(data){
+  const{moisture,temp,humid,light}=data;
+  setGauge('g-moisture',moisture);animateNum('v-moisture',moisture,1);
+  const sl=soilLabel(moisture);
+  document.getElementById('v-soil').textContent=sl.icon;
+  let bm=document.getElementById('b-moisture');bm.textContent=sl.label;bm.className='kpi-badge '+sl.badge;
+  let bs=document.getElementById('b-soil');bs.textContent=sl.label;bs.className='kpi-badge '+sl.badge;
 
-                // UI processing execution based on data changes
-                updateGauge(moistureValue);
-                
-                // Adjust contextual descriptors dynamically
-                const conditionText = document.getElementById('soilConditionText');
-                if(moistureValue < 30) {
-                    conditionText.innerText = "DRY";
-                    conditionText.className = "text-value warning";
-                } else if(moistureValue > 75) {
-                    conditionText.innerText = "WET";
-                    conditionText.className = "text-value warning";
-                } else {
-                    conditionText.innerText = "OPTIMAL";
-                    conditionText.className = "text-value good";
-                }
+  setGauge('g-temp',(temp/50)*100);animateNum('v-temp',temp,1);
+  const bt=document.getElementById('b-temp');
+  bt.textContent=temp>35?'HIGH':temp<15?'COLD':'NORMAL';
+  bt.className='kpi-badge '+(temp>35?'badge-red':temp<15?'badge-blue':'badge-green');
 
-                document.getElementById('lastUpdated').innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
-                realtimeChart.update();
+  setGauge('g-humid',humid);animateNum('v-humid',humid,1);
+  const bh=document.getElementById('b-humid');
+  bh.textContent=humid>80?'HIGH':humid<30?'DRY':'OPTIMAL';
+  bh.className='kpi-badge '+(humid>80?'badge-cyan':humid<30?'badge-amber':'badge-green');
 
-            } catch (error) {
-                console.warn("Using simulated telemetry environment (ThingSpeak Sandbox Mock Mode)");
-                generateMockData();
-            }
-        }
+  setGauge('g-light',light);animateNum('v-light',Math.round(light*10));
+  const bl=document.getElementById('b-light');
+  bl.textContent=light>70?'BRIGHT':light>30?'MODERATE':'DIM';
+  bl.className='kpi-badge '+(light>70?'badge-amber':'badge-blue');
 
-        // Simulates continuous incoming dynamic data streams smoothly if hardware configuration isn't currently broadcast active
-        function generateMockData() {
-            const baseTime = new Date();
-            if(realtimeChart.data.labels.length === 0) {
-                for(let i = 9; i >= 0; i--) {
-                    let pastTime = new Date(baseTime.getTime() - i * 4000);
-                    realtimeChart.data.labels.push(pastTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}));
-                    realtimeChart.data.datasets[0].data.push(Math.floor(Math.random() * (68 - 42) + 42));
-                }
-            } else {
-                if(realtimeChart.data.labels.length > 12) {
-                    realtimeChart.data.labels.shift();
-                    realtimeChart.data.datasets[0].data.shift();
-                }
-                realtimeChart.data.labels.push(baseTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}));
-                const nextVal = Math.floor(Math.random() * (68 - 42) + 42);
-                realtimeChart.data.datasets[0].data.push(nextVal);
-            }
-            
-            const liveVal = realtimeChart.data.datasets[0].data[realtimeChart.data.datasets[0].data.length - 1];
-            updateGauge(liveVal);
-            document.getElementById('lastUpdated').innerText = `Last updated: ${baseTime.toLocaleTimeString()}`;
-            realtimeChart.update();
-        }
+  const wp=Math.round(100-moisture*.4+Math.random()*10);
+  const wl=waterLabel(wp);
+  document.getElementById('water-val').textContent=wl.text;
+  document.getElementById('water-val').style.color=wl.color;
+  document.getElementById('water-pct').textContent=wp;
 
-        // Loop system fetching processes automatically every 4 seconds
-        setInterval(fetchTelemetry, 4000);
-        fetchTelemetry();
-    </script>
+  const pumpOn=moisture<30;
+  document.getElementById('pump-val').textContent=pumpOn?'ON 🔵':'OFF';
+  document.getElementById('irrig-val').textContent=pumpOn?'IRRIGATING':'STANDBY';
+  document.getElementById('irrig-val').style.color=pumpOn?'var(--accent-cyan)':'var(--accent-amber)';
+
+  document.getElementById('esp-rssi').textContent=Math.round(-55-Math.random()*25);
+  document.getElementById('loop-time').textContent=Math.round(12+Math.random()*8);
+  document.getElementById('uptime').textContent=formatUptime();
+  document.getElementById('voltage').textContent=(3.28+Math.random()*.06).toFixed(2);
+  document.getElementById('ts-status').textContent=TS_READ_KEY!=='YOUR_READ_API_KEY'?'SYNCED ✓':'DEMO MODE';
+  document.getElementById('last-updated').textContent=new Date().toLocaleString();
+
+  addTableRow({moisture,temp,humid,waterPct:wp,sl,now:new Date().toLocaleString()});
+  pushChartData(moisture,temp,humid);
+}
+
+let uptimeStart=Date.now();
+function formatUptime(){
+  const s=Math.floor((Date.now()-uptimeStart)/1000);
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;
+  return`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
+
+function addTableRow({moisture,temp,humid,waterPct,sl,now}){
+  logCount++;
+  const tbody=document.getElementById('log-body');
+  if(tbody.rows.length===1&&tbody.rows[0].cells.length===1)tbody.innerHTML='';
+  const row=document.createElement('tr');
+  row.innerHTML=`
+    <td class="td-num">${String(logCount).padStart(3,'0')}</td>
+    <td>${now}</td>
+    <td class="td-num" style="color:var(--accent-cyan)">${moisture.toFixed(1)}%</td>
+    <td class="td-num" style="color:var(--accent-green)">${temp.toFixed(1)}</td>
+    <td class="td-num" style="color:var(--accent-amber)">${humid.toFixed(1)}%</td>
+    <td class="td-num">${waterPct}%</td>
+    <td><span class="kpi-badge ${sl.badge}">${sl.label}</span></td>
+    <td><span class="kpi-badge badge-green">● ONLINE</span></td>`;
+  tbody.insertBefore(row,tbody.firstChild);
+  while(tbody.rows.length>8)tbody.deleteRow(tbody.rows.length-1);
+}
+
+const CD={responsive:true,maintainAspectRatio:false,animation:{duration:600,easing:'easeInOutQuart'},plugins:{legend:{labels:{color:'#5a8aaa',font:{family:'Exo 2',size:11}}}}};
+const lineLabels=[],lineData=[];
+const lineCtx=document.getElementById('lineChart').getContext('2d');
+const grad=lineCtx.createLinearGradient(0,0,0,220);
+grad.addColorStop(0,'rgba(0,229,255,0.35)');grad.addColorStop(1,'rgba(0,229,255,0)');
+const lineChart=new Chart(lineCtx,{type:'line',data:{labels:lineLabels,datasets:[{label:'Soil Moisture %',data:lineData,borderColor:'#00e5ff',backgroundColor:grad,fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#00e5ff',borderWidth:2}]},options:{...CD,scales:{x:{ticks:{color:'#5a8aaa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{min:0,max:100,ticks:{color:'#5a8aaa',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+
+const donutChart=new Chart(document.getElementById('donutChart').getContext('2d'),{type:'doughnut',data:{labels:['Moisture','Temperature','Humidity','Light'],datasets:[{data:[62,54,58,75],backgroundColor:['rgba(0,229,255,.7)','rgba(0,255,136,.7)','rgba(255,179,0,.7)','rgba(26,140,255,.7)'],borderColor:['#00e5ff','#00ff88','#ffb300','#1a8cff'],borderWidth:1.5,hoverOffset:8}]},options:{...CD,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:'#5a8aaa',padding:12,font:{size:11}}}}}});
+
+const barLabels=Array.from({length:10},(_,i)=>`T-${(9-i)*15}m`);
+const barChart=new Chart(document.getElementById('barChart').getContext('2d'),{type:'bar',data:{labels:barLabels,datasets:[{label:'Temp °C',data:barLabels.map(()=>22+Math.random()*12),backgroundColor:'rgba(0,255,136,0.4)',borderColor:'#00ff88',borderWidth:1.5,borderRadius:4}]},options:{...CD,scales:{x:{ticks:{color:'#5a8aaa',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#5a8aaa'},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+
+const radarChart=new Chart(document.getElementById('radarChart').getContext('2d'),{type:'radar',data:{labels:['Moisture','Temp','Humidity','Light','Water','Signal'],datasets:[{label:'Current',data:[62,54,58,75,66,80],backgroundColor:'rgba(0,229,255,0.12)',borderColor:'#00e5ff',pointBackgroundColor:'#00e5ff',borderWidth:2,pointRadius:4}]},options:{...CD,scales:{r:{min:0,max:100,ticks:{display:false},grid:{color:'rgba(255,255,255,0.08)'},angleLines:{color:'rgba(255,255,255,0.06)'},pointLabels:{color:'#5a8aaa',font:{size:11}}}}}});
+
+function pushChartData(moisture,temp,humid){
+  const t=new Date().toLocaleTimeString('en-US',{hour12:false});
+  lineLabels.push(t);lineData.push(+moisture.toFixed(1));
+  if(lineLabels.length>20){lineLabels.shift();lineData.shift();}
+  lineChart.update('none');
+  donutChart.data.datasets[0].data=[moisture,(temp/50)*100,humid,75];donutChart.update('none');
+  radarChart.data.datasets[0].data=[moisture,(temp/50)*100,humid,75,60+Math.random()*30,60+Math.random()*35];radarChart.update('none');
+}
+
+let countdown=REFRESH_MS/1000;
+setInterval(()=>{countdown--;if(countdown<=0)countdown=REFRESH_MS/1000;document.getElementById('countdown').textContent=countdown;},1000);
+
+async function refresh(){
+  let data=await fetchThingSpeak();
+  if(!data||Object.values(data).some(v=>v===null))data=simulateStep();
+  updateUI(data);
+}
+refresh();
+setInterval(refresh,REFRESH_MS);
+</script>
 </body>
 </html>
